@@ -272,24 +272,23 @@
             $("instruction").textContent = SETTINGS.InstructionText || "";
 
             // Restore previously saved value (edit case) or seed from labels
-            let restored = false;
+         let restored = false;
             try {
-              const existing = JFCustomWidget.getValue && JFCustomWidget.getValue();
-              if (existing) {
-                const parsed = JSON.parse(existing);
-                if (Array.isArray(parsed) && parsed.length) {
-                  parsed.forEach(p => {
-                    const r = {
-                      id: nextId++,
-                      label: p.label || "",
-                      checked: !!p.checked,
-                      timestampMs: p.timestamp_iso ? new Date(p.timestamp_iso).getTime() : null
-                    };
-                    rows.push(r);
-                    renderRow(r);
-                  });
-                  restored = true;
-                }
+              const existing = JFCustomWidget.getValue();
+              const parsed = JSON.parse(existing);
+            
+              if (Array.isArray(parsed)) {
+                parsed.forEach(p => {
+                  const r = {
+                    id: nextId++,
+                    label: p.label || "",
+                    checked: !!p.checked,
+                    timestampMs: p.timestamp_iso ? new Date(p.timestamp_iso).getTime() : null
+                  };
+                  rows.push(r);
+                  renderRow(r);
+                });
+                restored = true;
               }
             } catch (e) {
               console.warn("[widget] restore parse failed:", e);
@@ -314,15 +313,15 @@
 
         // Ensure the value is included with the submission
         JFCustomWidget.subscribe("submit", function () {
-          try {
-            const value = syncToForm(false);
-            JFCustomWidget.sendSubmit({ valid: true, value });
-          } catch (e) {
-            console.error("[widget] submit failed:", e);
-            // Submit an empty but valid value to avoid blocking submission
-            JFCustomWidget.sendSubmit({ valid: true, value: "[]" });
-          }
-        });
+        try {
+          const value = JSON.stringify(toPayload());
+          JFCustomWidget.sendSubmit({ valid: true, value: value });
+        } catch (e) {
+          console.error("[widget] submit failed:", e);
+          // send valid empty JSON, not text
+          JFCustomWidget.sendSubmit({ valid: true, value: "[]" });
+        }
+      });
       } else {
         // Local file preview (outside Jotform) to sanity-check UI
         $("instruction").textContent =
