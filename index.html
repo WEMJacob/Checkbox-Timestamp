@@ -1,256 +1,322 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <!-- Jotform Custom Widget SDK -->
-    <script src="//js.jotform.com/JotFormCustomWidget.min.js"></script>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Click Timestamp Widget (Rows from Settings)</title>
+
+    <!-- Jotform Custom Widget SDK (required for iFrame Widgets) -->
+    <script src="//js.jotform.com/JotFormCustomWidget.min.js"></script>
+
     <style>
       :root {
-        --bg:#fff; --txt:#111; --muted:#666; --line:#e6e6e6;
-        --brand:#155EEF; --success:#107c41; --danger:#b3261e;
+        --bg: #fff;
+        --txt: #111;
+        --muted: #666;
+        --line: #e6e6e6;
+        --brand: #155EEF;
+        --ok: #107c41;
       }
-      html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial}
-      .wrap{padding:10px 12px}
-      .top{margin-bottom:8px}
-      .title{font-weight:600}
-      .muted{color:var(--muted)}
-      .grid{width:100%;border-collapse:collapse;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-      .grid th,.grid td{border-bottom:1px solid var(--line);padding:8px 10px;vertical-align:middle}
-      .grid th{background:#fafafa;text-align:left;font-weight:600}
-      .grid tr:last-child td{border-bottom:none}
-      input[type="text"]{width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid #d0d7de;border-radius:8px}
-      input[type="checkbox"]{transform:scale(1.1)}
-      .ts{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
-      .btn{appearance:none;border:0;border-radius:10px;background:var(--brand);color:#fff;padding:8px 12px;font-weight:600;cursor:pointer}
-      .btn.secondary{background:#e9eefc;color:#173575}
-      .btn.link{background:transparent;color:var(--brand);padding:0}
-      .actions{display:flex;gap:8px;margin-top:10px}
-      .ok{color:var(--success);font-weight:600}
-      .row-actions{display:flex;gap:6px;align-items:center}
-      .small{font-size:12px}
+      html, body {
+        margin: 0; padding: 0;
+        background: var(--bg); color: var(--txt);
+        font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      }
+      .wrap { padding: 10px 12px; }
+      .top  { margin-bottom: 8px; }
+      .muted{ color: var(--muted); }
+
+      .grid {
+        width: 100%;
+        border-collapse: collapse;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .grid th, .grid td {
+        border-bottom: 1px solid var(--line);
+        padding: 8px 10px;
+        vertical-align: middle;
+      }
+      .grid th {
+        background: #fafafa;
+        text-align: left;
+        font-weight: 600;
+      }
+      .grid tr:last-child td { border-bottom: none; }
+
+      .ts {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      .actions { display: flex; gap: 8px; margin-top: 10px; }
+      .btn {
+        appearance: none; border: 0; border-radius: 10px;
+        background: #e9eefc; color: #173575; padding: 8px 12px; font-weight: 600;
+        cursor: pointer;
+      }
+      .ok { color: var(--ok); font-weight: 600; }
+      .small { font-size: 12px; }
+      .center { text-align: center; }
+      .no-rows {
+        padding: 12px 0; color: var(--muted);
+      }
     </style>
   </head>
+
   <body>
     <div class="wrap">
+      <!-- Optional helper text that you can set from widget settings -->
       <div id="instruction" class="top muted"></div>
 
-      <table class="grid" id="tbl">
+      <table class="grid" id="tbl" aria-label="Timestamp checklist">
         <thead>
           <tr>
-            <th style="width:32%;">Label</th>
-            <th>Notes</th>
+            <th style="width:45%;">Label</th>
             <th style="width:90px;">Done</th>
-            <th style="width:210px;">Timestamp</th>
-            <th style="width:60px;"></th>
+            <th style="width:180px;">Timestamp (HH:MM:SS)</th>
           </tr>
         </thead>
         <tbody id="tbody"></tbody>
       </table>
 
       <div class="actions">
-        <button id="addRow" class="btn" type="button">+ Add Row</button>
-        <button id="clearAllTS" class="btn secondary" type="button">Clear All Timestamps</button>
-        <span id="status" class="muted small"></span>
+        <!-- Intentionally NO 'Add Row' button per requirements -->
+        <button id="clearAllTS" class="btn" type="button" aria-label="Clear all timestamps">Clear All Timestamps</button>
+        <span id="status" class="muted small" role="status" aria-live="polite"></span>
+      </div>
+
+      <div id="emptyState" class="no-rows" style="display:none;">
+        No rows are configured. Set the <strong>RowLabels</strong> in the widget settings (comma-separated).
       </div>
     </div>
 
     <script>
-      // ----- Settings pulled from Jotform (configured in Builder) -----
-      let SETTINGS = {
-        InstructionText: "",
-        RowLabels: "",           // comma-separated list
-        DefaultRows: "3",        // number as string
-        AllowAddRows: "true",
-        IncludeUserNotes: "true",
-        TimestampFormat: "ISO"   // ISO | Local
+      // -----------------------------
+      // Settings (configurable in Builder)
+      // -----------------------------
+      const SETTINGS = {
+        InstructionText: "",       // Helper text shown above the table
+        RowLabels: "",             // Comma-separated list of labels (required for rows)
+        ClearOnUncheck: "true"     // Clear timestamp if a checkbox is unticked
       };
 
-      // ----- State -----
-      let rows = []; // [{id,label,note,checked,timestamp}]
+      // -----------------------------
+      // Internal state
+      // -----------------------------
+      let rows = []; // [{id,label,checked,timestampMs}]
       let nextId = 1;
 
-      // ----- Utils -----
+      // -----------------------------
+      // Utilities
+      // -----------------------------
       const $ = (id) => document.getElementById(id);
-      const fmtISO = (ms) => new Date(ms).toISOString();
-      const fmtLocal = (ms) => new Date(ms).toLocaleString();
-      const fmtTS = (ms) => (ms ? (SETTINGS.TimestampFormat === "Local" ? fmtLocal(ms) : fmtISO(ms)) : "—");
+      const pad2 = (n) => (n < 10 ? "0" + n : "" + n);
+      /**
+       * Return local time as HH:MM:SS
+       */
+      function toHMS(ms) {
+        if (!ms) return "—";
+        const d = new Date(ms);
+        return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+      }
+      function toISO(ms) {
+        return ms ? new Date(ms).toISOString() : "";
+      }
 
+      /**
+       * Build the JSON payload we store in the Jotform submission.
+       * Includes both ISO (machine-friendly) and HMS (human-friendly) time.
+       */
       function toPayload() {
         return rows.map(r => ({
-          label: r.label, note: r.note, checked: !!r.checked,
-          timestamp: r.timestamp ? new Date(r.timestamp).toISOString() : ""
+          label: r.label,
+          checked: !!r.checked,
+          timestamp_iso: toISO(r.timestampMs),
+          time_hms: toHMS(r.timestampMs)
         }));
       }
 
-      function syncToForm(live=false) {
+      /**
+       * Push the current value into the form field (for builder/instant preview),
+       * and return the serialized string for final submission.
+       */
+      function syncToForm(live = false) {
         const value = JSON.stringify(toPayload());
-        if (live) { JFCustomWidget.setValue(value); } // keep builder preview updated
+        try {
+          if (live && typeof JFCustomWidget !== "undefined" && JFCustomWidget.setValue) {
+            JFCustomWidget.setValue(value);
+          }
+        } catch (e) {
+          console.warn("[widget] setValue failed:", e);
+        }
         return value;
       }
 
+      function autoResize() {
+        try {
+          if (typeof JFCustomWidget !== "undefined" && JFCustomWidget.requestFrameResize) {
+            const height = Math.max(200, 150 + rows.length * 48);
+            JFCustomWidget.requestFrameResize({ height });
+          }
+        } catch (e) {
+          // non-fatal
+        }
+      }
+
+      // -----------------------------
+      // Rendering
+      // -----------------------------
       function renderRow(r) {
         const tr = document.createElement("tr");
         tr.dataset.id = r.id;
 
-        // Label (builder can prefill; end‑user can also edit label if you want)
+        // Label (NOT editable by respondents)
         const tdLabel = document.createElement("td");
-        const inpLabel = document.createElement("input");
-        inpLabel.type = "text";
-        inpLabel.value = r.label || "";
-        inpLabel.placeholder = "Label";
-        inpLabel.addEventListener("input", () => { r.label = inpLabel.value; syncToForm(true); });
-        tdLabel.appendChild(inpLabel);
+        tdLabel.textContent = r.label || "";
+        tdLabel.title = r.label || "";
+        tr.appendChild(tdLabel);
 
-        // Notes (end‑user)
-        const tdNote = document.createElement("td");
-        if (SETTINGS.IncludeUserNotes === "true") {
-          const inpNote = document.createElement("input");
-          inpNote.type = "text";
-          inpNote.value = r.note || "";
-          inpNote.placeholder = "Notes";
-          inpNote.addEventListener("input", () => { r.note = inpNote.value; syncToForm(true); });
-          tdNote.appendChild(inpNote);
-        } else {
-          tdNote.innerHTML = '<span class="muted small">Notes disabled</span>';
-        }
-
-        // Checkbox
+        // Done (checkbox)
         const tdDone = document.createElement("td");
-        tdDone.style.textAlign = "center";
+        tdDone.className = "center";
         const cb = document.createElement("input");
         cb.type = "checkbox";
         cb.checked = !!r.checked;
+        cb.setAttribute("aria-label", `Mark "${r.label}" as done`);
         cb.addEventListener("change", () => {
           r.checked = cb.checked;
-          if (cb.checked && !r.timestamp) {
-            r.timestamp = Date.now(); 
-              $("status").innerHTML = `<span class="ok">Captured</span> ${fmtTS(r.timestamp)}`;
+
+          if (cb.checked) {
+            // Freeze timestamp at moment of check if not already set
+            if (!r.timestampMs) {
+              r.timestampMs = Date.now();
+              $("status").innerHTML = `<span class="ok">Captured</span> ${toHMS(r.timestampMs)}`;
             }
-          } else {
-            // Clear timestamp on uncheck (handles misclick)
-            r.timestamp = null;
+          } else if (SETTINGS.ClearOnUncheck === "true") {
+            // Clear timestamp on uncheck (misclick protection)
+            r.timestampMs = null;
           }
 
-          updateTimestampCell();
-          syncToForm(true); // keep the widget field value in sync with the form
-          });
+          tdTS.textContent = toHMS(r.timestampMs);
+          syncToForm(true);
+        });
         tdDone.appendChild(cb);
+        tr.appendChild(tdDone);
 
-        // Timestamp
+        // Timestamp (HH:MM:SS)
         const tdTS = document.createElement("td");
         tdTS.className = "ts";
-        function updateTimestampCell() {
-          tdTS.textContent = fmtTS(r.timestamp);
-        }
-        updateTimestampCell();
-
-        // Row actions
-        const tdAct = document.createElement("td");
-        const actions = document.createElement("div");
-        actions.className = "row-actions";
-
-        const btnReset = document.createElement("button");
-        btnReset.type = "button";
-        btnReset.className = "btn link small";
-        btnReset.textContent = "Reset";
-        btnReset.addEventListener("click", () => {
-          r.checked = false;
-          r.timestamp = null;
-          cb.checked = false;
-          updateTimestampCell();
-          syncToForm(true);
-        });
-
-        const btnDel = document.createElement("button");
-        btnDel.type = "button";
-        btnDel.className = "btn link small";
-        btnDel.textContent = "Remove";
-        btnDel.addEventListener("click", () => {
-          rows = rows.filter(x => x.id !== r.id);
-          tr.remove();
-          syncToForm(true);
-        });
-
-        actions.appendChild(btnReset);
-        actions.appendChild(btnDel);
-        tdAct.appendChild(actions);
-
-        tr.appendChild(tdLabel);
-        tr.appendChild(tdNote);
-        tr.appendChild(tdDone);
+        tdTS.textContent = toHMS(r.timestampMs);
         tr.appendChild(tdTS);
-        tr.appendChild(tdAct);
+
         $("tbody").appendChild(tr);
       }
 
-      function addRow(initial = {}) {
-        const r = {
-          id: nextId++,
-          label: initial.label || "",
-          note: initial.note || "",
-          checked: !!initial.checked,
-          timestamp: initial.timestamp ? new Date(initial.timestamp).getTime() : null
-        };
-        rows.push(r);
-        renderRow(r);
-        syncToForm(true);
-      }
+      function seedRowsFromSettings() {
+        const labels = (SETTINGS.RowLabels || "")
+          .split(",")
+          .map(s => s.trim())
+          .filter(Boolean);
 
-      function seedRows() {
-        const labels = (SETTINGS.RowLabels || "").split(",").map(s => s.trim()).filter(Boolean);
-        if (labels.length) {
-          labels.forEach(l => addRow({ label: l }));
-        } else {
-          const n = Math.max(0, parseInt(SETTINGS.DefaultRows || "0", 10) || 0);
-          for (let i = 0; i < n; i++) addRow({});
+        if (!labels.length) {
+          // no rows to render
+          $("emptyState").style.display = "block";
+          return;
         }
+
+        $("emptyState").style.display = "none";
+
+        labels.forEach(label => {
+          const r = {
+            id: nextId++,
+            label,
+            checked: false,
+            timestampMs: null
+          };
+          rows.push(r);
+          renderRow(r);
+        });
       }
 
-      // ----- Jotform widget lifecycle -----
-      JFCustomWidget.subscribe("ready", function() {
-        // 1) Read settings defined in the Builder
-        Object.keys(SETTINGS).forEach(k => {
-          const v = JFCustomWidget.getWidgetSetting(k);
-          if (typeof v !== "undefined" && v !== null && v !== "") SETTINGS[k] = String(v);
-        });
+      // -----------------------------
+      // Jotform lifecycle
+      // -----------------------------
+      if (typeof JFCustomWidget !== "undefined") {
+        // Initialize when the form signals widget is ready
+        JFCustomWidget.subscribe("ready", function () {
+          try {
+            // Read settings (provided via Jotform Builder)
+            Object.keys(SETTINGS).forEach(key => {
+              try {
+                const v = JFCustomWidget.getWidgetSetting(key);
+                if (v !== undefined && v !== null && v !== "") SETTINGS[key] = String(v);
+              } catch (e) {
+                console.warn("[widget] getWidgetSetting error:", key, e);
+              }
+            });
 
-        // 2) Set instruction text
-        $("instruction").textContent = SETTINGS.InstructionText || "";
+            // Instruction text
+            $("instruction").textContent = SETTINGS.InstructionText || "";
 
-        // 3) Seed rows based on settings or previously saved value
-        const existing = JFCustomWidget.getValue && JFCustomWidget.getValue(); // may be undefined
-        try {
-          const parsed = existing ? JSON.parse(existing) : null;
-          if (parsed && Array.isArray(parsed) && parsed.length) {
-            parsed.forEach(p => addRow(p));
-          } else {
-            seedRows();
+            // Restore previously saved value (edit case) or seed from labels
+            let restored = false;
+            try {
+              const existing = JFCustomWidget.getValue && JFCustomWidget.getValue();
+              if (existing) {
+                const parsed = JSON.parse(existing);
+                if (Array.isArray(parsed) && parsed.length) {
+                  parsed.forEach(p => {
+                    const r = {
+                      id: nextId++,
+                      label: p.label || "",
+                      checked: !!p.checked,
+                      timestampMs: p.timestamp_iso ? new Date(p.timestamp_iso).getTime() : null
+                    };
+                    rows.push(r);
+                    renderRow(r);
+                  });
+                  restored = true;
+                }
+              }
+            } catch (e) {
+              console.warn("[widget] restore parse failed:", e);
+            }
+
+            if (!restored) seedRowsFromSettings();
+
+            // “Clear All Timestamps”
+            $("clearAllTS").addEventListener("click", () => {
+              rows.forEach(r => { r.checked = false; r.timestampMs = null; });
+              $("tbody").innerHTML = "";
+              rows.forEach(renderRow);
+              syncToForm(true);
+              autoResize();
+            });
+
+            autoResize();
+          } catch (e) {
+            console.error("[widget] init failed:", e);
           }
-        } catch {
-          seedRows();
-        }
-
-        // 4) Controls
-        $("addRow").style.display = (SETTINGS.AllowAddRows === "true") ? "inline-block" : "none";
-        $("addRow").addEventListener("click", () => addRow({}));
-
-        $("clearAllTS").addEventListener("click", () => {
-          rows.forEach(r => { r.checked = false; r.timestamp = null; });
-          $("tbody").innerHTML = "";
-          rows.forEach(renderRow);
-          syncToForm(true);
         });
 
-        // 5) Size the frame
-        JFCustomWidget.requestFrameResize({ height: Math.max(220, 160 + rows.length * 48) });
-      });
-
-      // Ensure the value is included with the submission
-      JFCustomWidget.subscribe("submit", function() {
-        const value = syncToForm(false);
-        JFCustomWidget.sendSubmit({ valid: true, value });
-      });
+        // Ensure the value is included with the submission
+        JFCustomWidget.subscribe("submit", function () {
+          try {
+            const value = syncToForm(false);
+            JFCustomWidget.sendSubmit({ valid: true, value });
+          } catch (e) {
+            console.error("[widget] submit failed:", e);
+            // Submit an empty but valid value to avoid blocking submission
+            JFCustomWidget.sendSubmit({ valid: true, value: "[]" });
+          }
+        });
+      } else {
+        // Local file preview (outside Jotform) to sanity-check UI
+        $("instruction").textContent =
+          "Local preview: Jotform SDK not detected. Configure RowLabels in Builder to generate rows.";
+        $("emptyState").style.display = "block";
+      }
     </script>
   </body>
 </html>
