@@ -124,12 +124,17 @@
         cb.addEventListener("change", () => {
           r.checked = cb.checked;
           if (cb.checked && !r.timestamp) {
-            r.timestamp = Date.now(); // freeze on first check
-            $("status").innerHTML = `<span class="ok">Captured</span> ${fmtTS(r.timestamp)}`;
+            r.timestamp = Date.now(); 
+              $("status").innerHTML = `<span class="ok">Captured</span> ${fmtTS(r.timestamp)}`;
+            }
+          } else {
+            // Clear timestamp on uncheck (handles misclick)
+            r.timestamp = null;
           }
+
           updateTimestampCell();
-          syncToForm(true);
-        });
+          syncToForm(true); // keep the widget field value in sync with the form
+          });
         tdDone.appendChild(cb);
 
         // Timestamp
