@@ -57,14 +57,21 @@
       }
       .ok { color: var(--ok); font-weight: 600; }
       .small { font-size: 12px; }
+      /* Keep table layout intact and center the checkbox horizontally */
       .center {
-        display: flex;
-        align-items: center;      /* vertical centering */
-        justify-content: center;  /* horizontal centering */
-        padding-top: 6px;         /* optional: nudge to optical middle */
+        text-align: center;              /* let the cell center inline content */
       }
+      /* Center the checkbox and keep it aligned vertically with the row content */
       .center input[type="checkbox"] {
-        margin: 0;                /* remove default checkbox margins */
+        display: inline-block;           /* or block; see note below */
+        margin: 0 auto;                  /* horizontal center */
+        vertical-align: middle;          /* play nicely with table baselines */
+      }
+
+      /* Make sure table cells vertically align to the middle across columns */
+      .grid th,
+      .grid td {
+        vertical-align: middle;
       }
     </style>
   </head>
