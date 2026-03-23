@@ -57,9 +57,14 @@
       }
       .ok { color: var(--ok); font-weight: 600; }
       .small { font-size: 12px; }
-      .center { text-align: center; }
-      .no-rows {
-        padding: 12px 0; color: var(--muted);
+      .center {
+        display: flex;
+        align-items: center;      /* vertical centering */
+        justify-content: center;  /* horizontal centering */
+        padding-top: 6px;         /* optional: nudge to optical middle */
+      }
+      .center input[type="checkbox"] {
+        margin: 0;                /* remove default checkbox margins */
       }
     </style>
   </head>
