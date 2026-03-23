@@ -168,20 +168,8 @@
       function autoResize() {
         try {
           if (typeof JFCustomWidget !== "undefined" && JFCustomWidget.requestFrameResize) {
-            const height = ocument.body;
-            const html = document.documentElement;
-     
-        // Measure max of all height sources  
-        const contentHeight = Math.max(200, 150 + rows.length * 48)
-                body.scrollHeight, body.offsetHeight,
-                html.clientHeight, html.scrollHeight, html.offsetHeight
-              );
-        
-              // Small buffer to avoid scrollbars due to fractional pixels
-              const height = Math.max(160, contentHeight + 2);
-              JFCustomWidget.requestFrameResize({ height });
-            }
-
+            const height = Math.max(200, 150 + rows.length * 48);
+            JFCustomWidget.requestFrameResize({ height });
           }
         } catch (e) {
           // non-fatal
