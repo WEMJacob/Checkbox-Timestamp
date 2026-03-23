@@ -418,13 +418,14 @@
         } catch (e) {
           console.error("[widget] submit failed:", e);
           JFCustomWidget.sendSubmit({ valid: true, value: "[]" });
-          } else {
-
-      /* Local browser testing fallback */
-      $("instruction").textContent =
-        "Local preview: Jotform SDK not detected.";
-      $("emptyState").style.display = "block";
-    }
+        }
+      });
+      } else {
+        // Local browser testing fallback
+        $("instruction").textContent =
+          "Local preview: Jotform SDK not detected.";
+        $("emptyState").style.display = "block";
+      }
   </script>
 
 </body>
