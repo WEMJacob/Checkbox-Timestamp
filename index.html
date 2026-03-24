@@ -412,7 +412,7 @@
         SUBMIT handler:
         Must send only JSON. Jotform stores this as widget's field value.
       */
-      JFCustomWidget.subscribe("submit", function () {
+           JFCustomWidget.subscribe("submit", function () {
         try {
           const value = JSON.stringify(toPayload());
           JFCustomWidget.sendSubmit({ valid: true, value: value });
@@ -421,11 +421,14 @@
           JFCustomWidget.sendSubmit({ valid: true, value: "[]" });
         }
       });
+      
       } else {
+      
         // Local browser testing fallback
         $("instruction").textContent =
           "Local preview: Jotform SDK not detected.";
         $("emptyState").style.display = "block";
+      
       }
   </script>
 
